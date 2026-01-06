@@ -43,7 +43,8 @@
  public function listarTodos() {
     $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, email_usuario,
                    data_nascimento_usuario, data_contratacao_usuario,
-                   matricula_usuario, telefone_usuario, ativo_usuario
+                   matricula_usuario, telefone_usuario, ativo_usuario,
+                   codigo_voto_usuario
             FROM usuario ORDER BY nome_usuario";
     $stmt = $this->pdo->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -108,6 +109,85 @@ public function excluir($id) {
     $stmt = $this->pdo->prepare($sql);
     $stmt->execute([':id' => $id]);
 }
+
+    /**
+     * Gera um código único de votação para o usuário
+     * @param int $idUsuario ID do usuário
+     * @return string|false Retorna o código gerado ou false em caso de erro
+     */
+    public function gerarCodigoVoto(int $idUsuario): string|false {
+        try {
+            // Gera um código único de 8 caracteres alfanuméricos
+            $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+            
+            // Verifica se o código já existe (muito improvável, mas por segurança)
+            $sqlVerifica = "SELECT id_usuario FROM usuario WHERE codigo_voto_usuario = :codigo";
+            $stmtVerifica = $this->pdo->prepare($sqlVerifica);
+            $stmtVerifica->execute([':codigo' => $codigo]);
+            
+            // Se o código já existir, gera outro
+            while ($stmtVerifica->fetch()) {
+                $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+                $stmtVerifica->execute([':codigo' => $codigo]);
+            }
+            
+            // Atualiza o código no banco de dados
+            $sql = "UPDATE usuario SET codigo_voto_usuario = :codigo WHERE id_usuario = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':codigo' => $codigo,
+                ':id' => $idUsuario
+            ]);
+            
+            return $codigo;
+        } catch (PDOException $e) {
+            error_log("Erro ao gerar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Valida se um código de votação existe e está ativo
+     * @param string $codigo Código de votação
+     * @return array|false Retorna os dados do usuário ou false se inválido
+     */
+    public function validarCodigoVoto(string $codigo): array|false {
+        try {
+            $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, matricula_usuario, 
+                           ativo_usuario, codigo_voto_usuario
+                    FROM usuario 
+                    WHERE codigo_voto_usuario = :codigo AND ativo_usuario = 1";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':codigo' => $codigo]);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $resultado ? $resultado : false;
+        } catch (PDOException $e) {
+            error_log("Erro ao validar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Busca o código de votação de um usuário
+     * @param int $idUsuario ID do usuário
+     * @return string|false Retorna o código ou false se não existir
+     */
+    public function getCodigoVoto(int $idUsuario): string|false {
+        try {
+            $sql = "SELECT codigo_voto_usuario FROM usuario WHERE id_usuario = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id' => $idUsuario]);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $resultado && !empty($resultado['codigo_voto_usuario']) 
+                ? $resultado['codigo_voto_usuario'] 
+                : false;
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
         
     }
 ?>

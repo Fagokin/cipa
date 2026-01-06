@@ -28,13 +28,17 @@ if (isset($_GET['msg'])) {
                         <strong>Erro!</strong> Não foi possível apagar o usuário.
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                      </div>';
+    } elseif ($_GET['msg'] === 'codigo_gerado') {
+        $mensagem = '<div class="alert alert-success alert-dismissible fade show mt-3">
+                        <strong>Sucesso!</strong> Código de votação gerado com sucesso!
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                     </div>';
+    } elseif ($_GET['msg'] === 'codigo_erro') {
+        $mensagem = '<div class="alert alert-danger alert-dismissible fade show mt-3">
+                        <strong>Erro!</strong> Não foi possível gerar o código de votação.
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                     </div>';
     }
-}
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_id'])) {
-    $id = (int)$_POST['excluir_id'];
-    $dao->excluir($id); 
-    echo "<script>alert('Usuário apagado com sucesso!'); location.reload();</script>";
-    exit;
 }
 $usuarios = $dao->listarTodos();
 ?>
@@ -46,10 +50,12 @@ $usuarios = $dao->listarTodos();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Usuários</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 <div class="container mt-5">
     <h1 class="mb-4">Lista de Usuários</h1>
+    <?= $mensagem ?>
     <a href="CriarTabela.php" class="btn btn-success mb-4">+ Novo Usuário</a>
 
     <table class="table table-striped table-hover">
@@ -61,6 +67,7 @@ $usuarios = $dao->listarTodos();
                 <th>Contratação</th>
                 <th>Matrícula</th>
                 <th>Telefone</th>
+                <th>Código de Votação</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -74,26 +81,39 @@ $usuarios = $dao->listarTodos();
                 <td><?= htmlspecialchars($u['matricula_usuario']) ?></td>
                 <td><?= htmlspecialchars($u['telefone_usuario'] ?? '-') ?></td>
                 <td>
+                    <?php if (!empty($u['codigo_voto_usuario'])): ?>
+                        <code class="bg-light px-2 py-1 rounded border" style="font-size: 0.9em; font-weight: bold;">
+                            <?= htmlspecialchars($u['codigo_voto_usuario']) ?>
+                        </code>
+                    <?php else: ?>
+                        <span class="text-muted">Não gerado</span>
+                    <?php endif; ?>
+                </td>
+                <td>
+                    <!-- Botão Gerar Código -->
+                    <form method="POST" action="GerarCodigoVoto.php" style="display:inline;">
+                        <input type="hidden" name="id_usuario" value="<?= $u['id_usuario'] ?>">
+                        <button type="submit" class="btn btn-success btn-sm" title="Gerar código de votação">
+                            <i class="fas fa-key"></i> Gerar Código
+                        </button>
+                    </form>
+
                     <!-- Botão Editar -->
                     <form method="POST" action="EditarTabela.php" style="display:inline;">
                         <input type="hidden" name="id" value="<?= $u['id_usuario'] ?>">
-                        <button type="submit" class="btn btn-primary btn-sm">Editar</button>
+                        <button type="submit" class="btn btn-primary btn-sm ms-1">Editar</button>
                     </form>
 
                     <!-- Botão Apagar com confirmação -->
                     <form method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja apagar este usuário? Esta ação não pode ser desfeita!')">
                         <input type="hidden" name="excluir_id" value="<?= $u['id_usuario'] ?>">
-                        <button type="submit" class="btn btn-danger btn-sm ms-2">Apagar</button>
+                        <button type="submit" class="btn btn-danger btn-sm ms-1">Apagar</button>
                     </form>
                 </td>
             </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
-
-    <?php
-
-    ?>
 </div>
 </body>
 </html>
