@@ -75,11 +75,11 @@ $eleicoes = $eleicaoDAO->listarTodas(); // método que vamos criar agora
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
-                                        <a href="LinkVotacao.php?id=<?= $e['id_eleicao'] ?>" class="btn btn-info btn-sm" title="Gerar link de votação">
+                                        <a href="Votar.php?id=<?= $e['id_eleicao'] ?>" class="btn btn-info btn-sm" title="Link de votação">
                                             <i class="fas fa-link"></i>
                                         </a>
-                                        <a href="Resultados.php?id=<?= $e['id_eleicao'] ?>" class="btn btn-secondary btn-sm" title="Ver resultados">
-                                            <i class="fas fa-chart-bar"></i>
+                                        <a href="AtaResultados.php?id=<?= $e['id_eleicao'] ?>" class="btn btn-secondary btn-sm" title="Gerar ata de resultados">
+                                            <i class="fas fa-file-alt"></i>
                                         </a>
                                         <button class="btn btn-danger btn-sm" title="Excluir eleição" onclick="confirmarExclusao(<?= $e['id_eleicao'] ?>)">
                                             <i class="fas fa-trash"></i>

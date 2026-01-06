@@ -7,14 +7,10 @@ $mensagem = "";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $dados = [
-        'titulo' => $_POST['titulo_eleicao'] ?? '',
-        'quantidade_trabalhadores' => $_POST['quantidade_trabalhadores'] ?? 0,
-        'grau_risco' => $_POST['grau_risco'] ?? 1,
-        'quantidade_efetivos' => $_POST['quantidade_efetivos'] ?? 0,
-        'quantidade_suplentes' => $_POST['quantidade_suplentes'] ?? 0,
-        'data_inicio' => $_POST['data_inicio_eleicao'] ?? '',
-        'data_fim' => $_POST['data_fim_eleicao'] ?? '',
-        'descricao' => $_POST['descricao_eleicao'] ?? '',
+        'titulo_eleicao' => $_POST['titulo_eleicao'] ?? '',
+        'data_inicio_eleicao' => $_POST['data_inicio_eleicao'] ?? '',
+        'data_fim_eleicao' => $_POST['data_fim_eleicao'] ?? '',
+        'descricao_eleicao' => $_POST['descricao_eleicao'] ?? '',
         'permite_voto_branco' => isset($_POST['permite_voto_branco']) ? 1 : 0
     ];
 
@@ -58,36 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="titulo_eleicao" class="form-label fw-bold">Nome</label>
                     <input type="text" name="titulo_eleicao" id="titulo_eleicao" class="form-control form-control-lg" 
                            placeholder="Ex: CIPA 2025/2026" required>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label for="quantidade_trabalhadores" class="form-label fw-bold">Quantidade de trabalhadores</label>
-                        <input type="number" name="quantidade_trabalhadores" id="quantidade_trabalhadores" 
-                               class="form-control" min="1" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Grau de risco</label>
-                        <div class="d-flex justify-content-between align-items-center mt-2">
-                            <label class="me-3"><input type="radio" name="grau_risco" value="1" required> 1</label>
-                            <label class="me-3"><input type="radio" name="grau_risco" value="2"> 2</label>
-                            <label class="me-3"><input type="radio" name="grau_risco" value="3"> 3</label>
-                            <label><input type="radio" name="grau_risco" value="4"> 4</label>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <label for="quantidade_efetivos" class="form-label fw-bold">Quantidade de efetivos</label>
-                        <input type="number" name="quantidade_efetivos" id="quantidade_efetivos" 
-                               class="form-control" min="0" value="0" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="quantidade_suplentes" class="form-label fw-bold">Quantidade de suplentes</label>
-                        <input type="number" name="quantidade_suplentes" id="quantidade_suplentes" 
-                               class="form-control" min="0" value="0" required>
-                    </div>
                 </div>
 
                 <div class="row mb-4">
