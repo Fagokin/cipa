@@ -36,7 +36,10 @@
         ':ativo'    => $usuario->getAtivoUsuario() ? 1 : 0,
         ':adm'      => $usuario->getAdmUsuario() ? 1 : 0,
     ]);
-    }
+
+    return true;
+
+    } 
  public function listarTodos() {
     $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, email_usuario,
                    data_nascimento_usuario, data_contratacao_usuario,
