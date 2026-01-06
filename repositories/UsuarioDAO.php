@@ -188,6 +188,53 @@ public function excluir($id) {
             return false;
         }
     }
+
+    /**
+     * Realiza o login do usuário verificando CPF e senha
+     * @param string $cpf CPF do usuário (apenas números)
+     * @param string $senha Senha em texto plano
+     * @return Usuario|false Retorna o objeto Usuario se login for bem-sucedido, ou false caso contrário
+     */
+    public function login(string $cpf, string $senha): Usuario|false {
+        try {
+            $sql = "SELECT * FROM usuario WHERE cpf_usuario = :cpf AND ativo_usuario = 1";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':cpf' => $cpf]);
+            $dados = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$dados) {
+                return false;
+            }
+            
+            // Verifica se a senha está correta
+            if (!password_verify($senha, $dados['senha_usuario'])) {
+                return false;
+            }
+            
+            // Cria e retorna o objeto Usuario
+            $usuario = new Usuario(
+                $dados['nome_usuario'],
+                $dados['sobrenome_usuario'],
+                '', // senha não é retornada por segurança
+                $dados['data_nascimento_usuario'],
+                $dados['data_contratacao_usuario'],
+                (bool)$dados['ativo_usuario'],
+                (bool)$dados['adm_usuario'],
+                $dados['matricula_usuario'],
+                $dados['cpf_usuario'],
+                $dados['telefone_usuario'] ?? '',
+                $dados['email_usuario'] ?? '',
+                $dados['codigo_voto_usuario'] ?? '',
+                $dados['id_usuario'],
+                $dados['ultimo_acesso_usuario'] ?? ''
+            );
+            
+            return $usuario;
+        } catch (PDOException $e) {
+            error_log("Erro ao realizar login: " . $e->getMessage());
+            return false;
+        }
+    }
         
     }
 ?>
