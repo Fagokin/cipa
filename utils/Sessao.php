@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . "/../models/Usuario.php";
+
 class Sessao {
     public static function iniciar() {
         if (session_status() === PHP_SESSION_NONE) {
@@ -8,9 +10,32 @@ class Sessao {
 
     public static function setUsuario($usuario) {
         self::iniciar();
-        $_SESSION['usuario'] = $usuario;
-        $_SESSION['usuario_id'] = $usuario['id_usuario'];
-        $_SESSION['usuario_adm'] = $usuario['adm_usuario'] ?? 0;
+        
+        // Se for um objeto Usuario, converte para array
+        if ($usuario instanceof Usuario) {
+            $_SESSION['usuario'] = [
+                'id_usuario' => $usuario->getIdUsuario(),
+                'nome_usuario' => $usuario->getNomeUsuario(),
+                'sobrenome_usuario' => $usuario->getSobrenomeUsuario(),
+                'email_usuario' => $usuario->getEmailUsuario(),
+                'data_nascimento_usuario' => $usuario->getDatadeNascimentoUuario(),
+                'data_contratacao_usuario' => $usuario->getDataContratacaoUsuario(),
+                'matricula_usuario' => $usuario->getMatriculaUsuario(),
+                'cpf_usuario' => $usuario->getCpfUsuario(),
+                'telefone_usuario' => $usuario->getTelefoneUsuario(),
+                'ativo_usuario' => $usuario->getAtivoUsuario(),
+                'adm_usuario' => $usuario->getAdmUsuario(),
+                'codigo_voto_usuario' => $usuario->getCodigoVotoUsuario(),
+                'ultimo_acesso_usuario' => $usuario->getUltimoAcessoUsuario()
+            ];
+            $_SESSION['usuario_id'] = $usuario->getIdUsuario();
+            $_SESSION['usuario_adm'] = $usuario->getAdmUsuario() ? 1 : 0;
+        } else {
+            // Se for array, usa diretamente
+            $_SESSION['usuario'] = $usuario;
+            $_SESSION['usuario_id'] = $usuario['id_usuario'];
+            $_SESSION['usuario_adm'] = $usuario['adm_usuario'] ?? 0;
+        }
     }
 
     public static function getUsuario() {
