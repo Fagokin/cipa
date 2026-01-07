@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../utils/Sessao.php";
 Sessao::requerAdmin();
+Sessao::iniciar();
 
 require_once __DIR__ . "/../repositories/EleicaoDAO.php";
 require_once __DIR__ . "/../repositories/CandidatoDAO.php";
@@ -8,38 +9,79 @@ require_once __DIR__ . "/../repositories/CandidatoDAO.php";
 $eleicaoDAO = new EleicaoDAO();
 $candidatoDAO = new CandidatoDAO();
 
-// Salva a eleição no banco
-$dados = $_SESSION['eleicao_dados'];
-$dadosEleicao = [
-    'titulo_eleicao' => $dados['titulo_eleicao'] ?? '',
-    'descricao_eleicao' => 'Eleição CIPA',
-    'data_inicio_eleicao' => $dados['data_inicio_eleicao'] ?? date('Y-m-d'),
-    'data_fim_eleicao' => $dados['data_fim_eleicao'] ?? date('Y-m-d'),
-    'permite_voto_branco' => 0
-];
+$dados = $_SESSION['eleicao_dados'] ?? [];
+$mensagem = "";
+$sucesso = false;
 
-$id_eleicao = $eleicaoDAO->criar($dadosEleicao);
-
-if ($id_eleicao) {
-    // Salva candidatos
-    foreach ($dados['candidatos'] ?? [] as $id_usuario) {
-        $candidatoDAO->adicionar([
-            'eleicao_fk' => $id_eleicao,
-            'funcionario_fk' => $id_usuario,
-            'numero_candidato' => 0,
-            'foto_candidato' => null
-        ]);
-    }
-
-    $mensagem = "Eleição criada com sucesso! ID: $id_eleicao";
-    $sucesso = true;
+if (empty($dados)) {
+    $mensagem = "Erro: Dados da eleição não encontrados na sessão.";
 } else {
-    $mensagem = "Erro ao salvar eleição.";
-    $sucesso = false;
-}
+    $dadosEleicao = [
+        'titulo_eleicao' => $dados['titulo_eleicao'] ?? '',
+        'descricao_eleicao' => $dados['descricao_eleicao'] ?? 'Eleição CIPA',
+        'data_inicio_eleicao' => $dados['data_inicio_eleicao'] ?? date('Y-m-d H:i:s'),
+        'data_fim_eleicao' => $dados['data_fim_eleicao'] ?? date('Y-m-d H:i:s'),
+        'permite_voto_branco' => $dados['permite_voto_branco'] ?? 0
+    ];
 
-// Limpa sessão
-unset($_SESSION['eleicao_dados']);
+    $id_eleicao = $eleicaoDAO->criar($dadosEleicao);
+
+    if ($id_eleicao) {
+        $candidatosAdicionados = 0;
+        $candidatosIds = $dados['candidatos'] ?? [];
+        $erros = [];
+        
+        if (empty($candidatosIds) || !is_array($candidatosIds)) {
+            $mensagem = "Erro: Nenhum candidato foi selecionado.";
+            $eleicaoDAO->excluir($id_eleicao);
+        } else {
+            require_once __DIR__ . "/../repositories/UsuarioDAO.php";
+            $usuarioDAO = new UsuarioDAO();
+            
+            foreach ($candidatosIds as $index => $id_usuario) {
+                $id_usuario = (int)$id_usuario;
+                if ($id_usuario > 0) {
+                    $usuario = $usuarioDAO->getUsuarioPorId($id_usuario);
+                    if (!$usuario) {
+                        $erros[] = "Usuário ID $id_usuario não existe";
+                        continue;
+                    }
+                    
+                    try {
+                        $resultado = $candidatoDAO->adicionar([
+                            'eleicao_fk' => $id_eleicao,
+                            'funcionario_fk' => $id_usuario,
+                            'numero_candidato' => 0,
+                            'foto_candidato' => null
+                        ]);
+                        if ($resultado !== false && $resultado > 0) {
+                            $candidatosAdicionados++;
+                        } else {
+                            $erros[] = "Usuário ID $id_usuario (" . ($usuario['nome_usuario'] ?? 'N/A') . ") não pôde ser adicionado. Verifique o arquivo logs/erros.log";
+                        }
+                    } catch (Exception $e) {
+                        $erros[] = "Erro ao adicionar usuário ID $id_usuario: " . $e->getMessage();
+                    }
+                }
+            }
+            
+            if ($candidatosAdicionados > 0) {
+                $mensagem = "Eleição criada com sucesso! ID: $id_eleicao. Candidatos adicionados: $candidatosAdicionados";
+                $sucesso = true;
+                unset($_SESSION['eleicao_dados']);
+            } else {
+                $mensagem = "Erro: Nenhum candidato foi adicionado à eleição.";
+                if (!empty($erros)) {
+                    $mensagem .= " " . implode(", ", $erros);
+                }
+                $mensagem .= " Verifique o arquivo logs/erros.log para mais detalhes.";
+                $eleicaoDAO->excluir($id_eleicao);
+            }
+        }
+    } else {
+        $mensagem = "Erro ao salvar eleição no banco de dados.";
+    }
+}
 ?>
 
 <!DOCTYPE html>

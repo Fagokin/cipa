@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . "/../utils/Sessao.php";
 Sessao::requerAdmin();
+Sessao::iniciar();
 
 require_once __DIR__ . "/../repositories/UsuarioDAO.php";
 
@@ -9,9 +10,16 @@ $usuarios = $usuarioDAO->listarTodos();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $selecionados = $_POST['candidatos'] ?? [];
-    $_SESSION['eleicao_dados']['candidatos'] = $selecionados;
-    header("Location: CriarEleicao4.php");
-    exit;
+    if (empty($selecionados)) {
+        $erro = "Por favor, selecione pelo menos um candidato.";
+    } else {
+        if (!isset($_SESSION['eleicao_dados'])) {
+            $_SESSION['eleicao_dados'] = [];
+        }
+        $_SESSION['eleicao_dados']['candidatos'] = $selecionados;
+        header("Location: CriarEleicao4.php");
+        exit;
+    }
 }
 ?>
 
@@ -29,6 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3>Eleição de CIPA - Passo 3: Candidatos</h3>
         </div>
         <div class="card-body">
+            <?php if (isset($erro)): ?>
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($erro) ?>
+                </div>
+            <?php endif; ?>
+            
             <div class="mb-4">
                 <strong>Data para início da candidatura:</strong> 
                 <?= $_SESSION['eleicao_dados']['data_abertura_candidaturas'] ?? 'Não definida' ?>

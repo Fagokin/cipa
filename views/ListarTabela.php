@@ -8,7 +8,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_id'])) {
     $id = (int)$_POST['excluir_id'];
     
     if ($dao->excluir($id)) {
-        // Redireciona com parâmetro de sucesso na URL
         header("Location: ListarTabela.php?msg=sucesso");
         exit;
     } else {

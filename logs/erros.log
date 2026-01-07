@@ -1,0 +1,4 @@
+[2026-01-07 22:20:04] Tentando adicionar candidato - Eleicao: 15, Usuario: 3
+[2026-01-07 22:20:04] Erro PDO: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ativo_candidato' in 'field list' | Código: 42S22
+[2026-01-07 22:20:04] Tentando adicionar candidato - Eleicao: 15, Usuario: 5
+[2026-01-07 22:20:04] Erro PDO: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ativo_candidato' in 'field list' | Código: 42S22

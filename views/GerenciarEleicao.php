@@ -25,7 +25,6 @@ if (isset($_GET['id'])) {
     }
 }
 
-// Processar exclusão de candidato
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_candidato'])) {
     $idCandidato = (int)$_POST['id_candidato'];
     $idEleicao = (int)$_POST['id_eleicao'];
@@ -34,12 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_candidato']))
         require_once __DIR__ . "/../utils/Conexao.php";
         $pdo = \Conexao::conectar();
         
-        // Remove da lista_candidatos primeiro
         $sql = "DELETE FROM lista_candidatos WHERE candidato_fk = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':id' => $idCandidato]);
         
-        // Remove o candidato
         $sql = "DELETE FROM candidato WHERE id_candidato = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':id' => $idCandidato]);
@@ -49,7 +46,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['excluir_candidato']))
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                      </div>';
         
-        // Recarrega os dados
         $candidatos = $candidatoDAO->listarPorEleicao($idEleicao);
         $resultados = $votoDAO->getResultadosEleicao($idEleicao);
     } catch (PDOException $e) {
@@ -107,8 +103,9 @@ if (!$eleicao) {
         </div>
         <div class="card-body">
             <?php if (empty($candidatos)): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Nenhum candidato cadastrado nesta eleição.
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Nenhum candidato cadastrado nesta eleição.
+                    <br><small>ID da Eleição: <?= $eleicao['id_eleicao'] ?? 'N/A' ?></small>
                 </div>
             <?php else: ?>
                 <div class="table-responsive">
@@ -126,19 +123,22 @@ if (!$eleicao) {
                             <?php foreach ($candidatos as $candidato): ?>
                                 <?php
                                 $votosCandidato = 0;
-                                if ($resultados && isset($resultados['candidatos'])) {
-                                    foreach ($resultados['candidatos'] as $resultado) {
-                                        if (isset($resultado['id_lista_candidato']) && 
-                                            isset($candidato['id_lista_candidato']) &&
-                                            $resultado['id_lista_candidato'] == $candidato['id_lista_candidato']) {
-                                            $votosCandidato = $resultado['total_votos'];
-                                            break;
-                                        }
-                                    }
+                                if (!empty($candidato['id_lista_candidato'])) {
+                                    require_once __DIR__ . "/../utils/Conexao.php";
+                                    $pdo = \Conexao::conectar();
+                                    $sqlVotos = "SELECT COUNT(*) as total FROM voto 
+                                                 WHERE lista_candidato_fk = :id_lista AND eleicao_fk = :eleicao";
+                                    $stmtVotos = $pdo->prepare($sqlVotos);
+                                    $stmtVotos->execute([
+                                        ':id_lista' => $candidato['id_lista_candidato'],
+                                        ':eleicao' => $eleicao['id_eleicao']
+                                    ]);
+                                    $resultadoVotos = $stmtVotos->fetch(PDO::FETCH_ASSOC);
+                                    $votosCandidato = (int)($resultadoVotos['total'] ?? 0);
                                 }
                                 ?>
                                 <tr>
-                                    <td><strong><?= htmlspecialchars($candidato['numero_candidato']) ?></strong></td>
+                                    <td><strong><?= !empty($candidato['numero_candidato']) ? htmlspecialchars($candidato['numero_candidato']) : '-' ?></strong></td>
                                     <td>
                                         <strong><?= htmlspecialchars($candidato['nome_usuario'] . ' ' . $candidato['sobrenome_usuario']) ?></strong>
                                     </td>

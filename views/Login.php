@@ -4,7 +4,6 @@ require_once __DIR__ . "/../utils/Sessao.php";
 
 Sessao::iniciar();
 
-// Se já estiver logado, redireciona
 if (Sessao::isLogado()) {
     header("Location: Dashboard.php");
     exit;
@@ -127,7 +126,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Máscara para CPF
         document.getElementById('cpf').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 11) {

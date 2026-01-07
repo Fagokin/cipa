@@ -21,7 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
     } elseif (strlen($cpf) != 11) {
         $erro = "CPF inválido. Deve conter 11 dígitos.";
     } else {
-        // Upload da foto
         $fotoCandidato = null;
         if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = __DIR__ . "/../uploads/candidatos/";
@@ -47,18 +46,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
         }
         
         if (empty($erro)) {
-            // Busca ou cria usuário com esse CPF
             require_once __DIR__ . "/../repositories/UsuarioDAO.php";
             $usuarioDAO = new UsuarioDAO();
             
-            // Verifica se já existe usuário com esse CPF
             $usuarioExistente = $usuarioDAO->getPorCpf($cpf);
             
             if (empty($erro)) {
                 if ($usuarioExistente) {
                     $idUsuario = $usuarioExistente['id_usuario'];
                 } else {
-                    // Cria novo usuário básico
                     $idUsuario = $usuarioDAO->criarUsuarioSimples($nome, $cpf);
                     if (!$idUsuario) {
                         $erro = "Erro ao criar usuário. Tente novamente.";
@@ -66,11 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
                 }
                 
                 if (empty($erro)) {
-                    // Adiciona como candidato
                     $dadosCandidato = [
                         'eleicao_fk' => $idEleicao,
                         'funcionario_fk' => $idUsuario,
-                        'numero_candidato' => 0, // Será gerado automaticamente ou definido depois
+                        'numero_candidato' => 0,
                         'foto_candidato' => $fotoCandidato
                     ];
                     
@@ -161,7 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Máscara para CPF
     document.getElementById('cpf')?.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length <= 11) {

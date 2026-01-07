@@ -136,28 +136,19 @@ public function excluir($id): bool {
     }
 }
 
-    /**
-     * Gera um código único de votação para o usuário
-     * @param int $idUsuario ID do usuário
-     * @return string|false Retorna o código gerado ou false em caso de erro
-     */
     public function gerarCodigoVoto(int $idUsuario): string|false {
         try {
-            // Gera um código único de 8 caracteres alfanuméricos
             $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
             
-            // Verifica se o código já existe (muito improvável, mas por segurança)
             $sqlVerifica = "SELECT id_usuario FROM usuario WHERE codigo_voto_usuario = :codigo";
             $stmtVerifica = $this->pdo->prepare($sqlVerifica);
             $stmtVerifica->execute([':codigo' => $codigo]);
             
-            // Se o código já existir, gera outro
             while ($stmtVerifica->fetch()) {
                 $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
                 $stmtVerifica->execute([':codigo' => $codigo]);
             }
             
-            // Atualiza o código no banco de dados
             $sql = "UPDATE usuario SET codigo_voto_usuario = :codigo WHERE id_usuario = :id";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([
@@ -172,11 +163,6 @@ public function excluir($id): bool {
         }
     }
 
-    /**
-     * Valida se um código de votação existe e está ativo
-     * @param string $codigo Código de votação
-     * @return array|false Retorna os dados do usuário ou false se inválido
-     */
     public function validarCodigoVoto(string $codigo): array|false {
         try {
             $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, matricula_usuario, 
@@ -206,11 +192,6 @@ public function excluir($id): bool {
         }
     }
 
-    /**
-     * Busca o código de votação de um usuário
-     * @param int $idUsuario ID do usuário
-     * @return string|false Retorna o código ou false se não existir
-     */
     public function getCodigoVoto(int $idUsuario): string|false {
         try {
             $sql = "SELECT codigo_voto_usuario FROM usuario WHERE id_usuario = :id";
@@ -227,12 +208,6 @@ public function excluir($id): bool {
         }
     }
 
-    /**
-     * Realiza o login do usuário verificando CPF e senha
-     * @param string $cpf CPF do usuário (apenas números)
-     * @param string $senha Senha em texto plano
-     * @return Usuario|false Retorna o objeto Usuario se login for bem-sucedido, ou false caso contrário
-     */
     public function login(string $cpf, string $senha): Usuario|false {
         try {
             $sql = "SELECT * FROM usuario WHERE cpf_usuario = :cpf AND ativo_usuario = 1";
@@ -244,12 +219,10 @@ public function excluir($id): bool {
                 return false;
             }
             
-            // Verifica se a senha está correta
             if (!password_verify($senha, $dados['senha_usuario'])) {
                 return false;
             }
             
-            // Cria e retorna o objeto Usuario
             $usuario = new Usuario(
                 $dados['nome_usuario'],
                 $dados['sobrenome_usuario'],
@@ -273,6 +246,5 @@ public function excluir($id): bool {
             return false;
         }
     }
-        
-    }
+}
 ?>

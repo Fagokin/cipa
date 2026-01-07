@@ -15,7 +15,6 @@ $eleicao = null;
 $candidatos = [];
 $mostrarFormulario = false;
 
-// Primeira validação: código de voto
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo_voto'])) {
     $codigo = strtoupper(trim($_POST['codigo_voto']));
     $usuario = $usuarioDAO->validarCodigoVoto($codigo);
@@ -37,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo_voto'])) {
     }
 }
 
-// Segunda validação: nome e CPF
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['validar_dados']) && isset($_POST['nome']) && isset($_POST['cpf'])) {
     $codigo = strtoupper(trim($_POST['codigo_voto']));
     $nome = trim($_POST['nome']);
@@ -46,12 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['validar_dados']) && i
     $usuario = $usuarioDAO->validarCodigoVoto($codigo);
     
     if ($usuario) {
-        // Verifica se nome e CPF correspondem
         $nomeCompleto = $usuario['nome_usuario'] . ' ' . $usuario['sobrenome_usuario'];
         $cpfUsuario = preg_replace('/[^0-9]/', '', $usuario['cpf_usuario']);
         
         if (strcasecmp(trim($nomeCompleto), trim($nome)) === 0 && $cpfUsuario === $cpf) {
-            // Dados corretos, redireciona para votação
             $idEleicao = (int)$_POST['id_eleicao'];
             $eleicao = $eleicaoDAO->getPorId($idEleicao);
             $candidatos = $candidatoDAO->listarPorEleicao($idEleicao);
@@ -239,7 +235,6 @@ document.getElementById('codigo_voto')?.addEventListener('input', function(e) {
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 });
 
-// Máscara de CPF
 document.getElementById('cpf')?.addEventListener('input', function(e) {
     let value = this.value.replace(/\D/g, '');
     if (value.length <= 11) {

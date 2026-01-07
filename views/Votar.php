@@ -12,13 +12,11 @@ $usuario = null;
 $eleicao = null;
 $candidatos = [];
 
-// Validação do código de votação
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo_voto'])) {
     $codigo = strtoupper(trim($_POST['codigo_voto']));
     $usuario = $usuarioDAO->validarCodigoVoto($codigo);
     
     if ($usuario) {
-        // Código válido, busca a eleição
         $idEleicao = isset($_POST['id_eleicao']) ? (int)$_POST['id_eleicao'] : 0;
         if ($idEleicao > 0) {
             $eleicao = $eleicaoDAO->getPorId($idEleicao);
@@ -34,7 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['codigo_voto'])) {
     }
 }
 
-// Se não tem código na URL, mostra formulário de validação
 if (!isset($_GET['codigo']) && !$usuario) {
     $idEleicao = isset($_GET['id']) ? (int)$_GET['id'] : 0;
     $eleicao = $idEleicao > 0 ? $eleicaoDAO->getPorId($idEleicao) : null;
@@ -112,10 +109,15 @@ if (!isset($_GET['codigo']) && !$usuario) {
                                             <label class="list-group-item">
                                                 <input type="radio" 
                                                        name="id_candidato" 
-                                                       value="<?= $candidato['id_candidato'] ?>" 
+                                                       value="<?= $candidato['id_lista_candidato'] ?? $candidato['id_candidato'] ?>" 
                                                        class="form-check-input me-2" 
                                                        required>
-                                                <strong><?= htmlspecialchars($candidato['nome_usuario'] . ' ' . $candidato['sobrenome_usuario']) ?></strong>
+                                                <strong>
+                                                    <?php if (!empty($candidato['numero_candidato']) && $candidato['numero_candidato'] > 0): ?>
+                                                        <?= htmlspecialchars($candidato['numero_candidato']) ?> - 
+                                                    <?php endif; ?>
+                                                    <?= htmlspecialchars($candidato['nome_usuario'] . ' ' . $candidato['sobrenome_usuario']) ?>
+                                                </strong>
                                             </label>
                                         <?php endforeach; ?>
                                     </div>
@@ -160,7 +162,6 @@ if (!isset($_GET['codigo']) && !$usuario) {
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// Converte automaticamente para maiúsculas
 document.getElementById('codigo_voto')?.addEventListener('input', function(e) {
     this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 });

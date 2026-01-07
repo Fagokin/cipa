@@ -10,7 +10,6 @@ $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id > 0) {
     $documento = $documentoDAO->getPorId($id);
     if ($documento) {
-        // Remove arquivo físico se existir
         $arquivo = __DIR__ . "/../uploads/documentos/" . $documento['arquivo_documento'];
         if (file_exists($arquivo)) {
             unlink($arquivo);

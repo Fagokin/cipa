@@ -9,7 +9,6 @@ $eleicao = null;
 if ($idEleicao > 0) {
     $eleicao = $eleicaoDAO->getPorId($idEleicao);
 } else {
-    // Lista todas as eleições se não especificar
     $eleicoes = $eleicaoDAO->listarTodas();
 }
 ?>

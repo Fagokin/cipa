@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $codigoVoto = isset($_POST['codigo_voto']) ? trim($_POST['codigo_voto']) : '';
     $idCandidato = isset($_POST['id_candidato']) ? $_POST['id_candidato'] : null;
 
-    // Valida se o código ainda é válido
     $usuario = $usuarioDAO->validarCodigoVoto($codigoVoto);
     
     if (!$usuario || $usuario['id_usuario'] != $idUsuario) {
@@ -26,9 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($votoDAO->jaVotou($idUsuario, $idEleicao)) {
         $mensagem = "Você já votou nesta eleição.";
     } else {
-        // Processa o voto
         if ($idCandidato === 'branco') {
-            // Voto branco
             if ($votoDAO->registrarVotoBranco($idUsuario, $idEleicao)) {
                 $usuarioDAO->marcarCodigoComoUsado($idUsuario);
                 $sucesso = true;
@@ -36,25 +33,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mensagem = "Erro ao registrar voto branco.";
             }
         } else {
-            // Voto em candidato
-            $candidato = $candidatoDAO->getPorNumero((int)$idCandidato, $idEleicao);
-            if ($candidato && isset($candidato['id_lista_candidato'])) {
+            require_once __DIR__ . "/../utils/Conexao.php";
+            $pdo = \Conexao::conectar();
+            
+            $sql = "SELECT lc.id_lista_candidato 
+                    FROM lista_candidatos lc
+                    JOIN candidato c ON lc.candidato_fk = c.id_candidato
+                    WHERE (c.id_candidato = :id OR c.numero_candidato = :id OR lc.id_lista_candidato = :id) 
+                    AND c.eleicao_fk = :eleicao AND c.ativo_candidato = 1
+                    LIMIT 1";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([
+                ':id' => (int)$idCandidato,
+                ':eleicao' => $idEleicao
+            ]);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($resultado && isset($resultado['id_lista_candidato'])) {
                 $dadosVoto = [
                     'funcionario_fk' => $idUsuario,
                     'eleicao_fk' => $idEleicao,
-                    'lista_candidato_fk' => $candidato['id_lista_candidato']
+                    'lista_candidato_fk' => $resultado['id_lista_candidato']
                 ];
                 
                 $resultadoVoto = $votoDAO->registrar($dadosVoto);
                 if ($resultadoVoto) {
-                    // Atualiza contador na lista_candidatos
-                    require_once __DIR__ . "/../utils/Conexao.php";
-                    $pdo = \Conexao::conectar();
                     $sql = "UPDATE lista_candidatos 
                             SET quantidade_votos_lista_candidato = quantidade_votos_lista_candidato + 1 
                             WHERE id_lista_candidato = :id";
                     $stmt = $pdo->prepare($sql);
-                    $stmt->execute([':id' => $candidato['id_lista_candidato']]);
+                    $stmt->execute([':id' => $resultado['id_lista_candidato']]);
                     
                     $usuarioDAO->marcarCodigoComoUsado($idUsuario);
                     $sucesso = true;

@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . "/../utils/Sessao.php";
 Sessao::requerAdmin();
+Sessao::iniciar();
 
 require_once __DIR__ . "/../repositories/UsuarioDAO.php";
 
 $usuarioDAO = new UsuarioDAO();
 
-// Pega candidatos da sessão
 $candidatos_ids = $_SESSION['eleicao_dados']['candidatos'] ?? [];
 $candidatos = [];
 foreach ($candidatos_ids as $id) {
