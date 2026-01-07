@@ -57,6 +57,26 @@ public function getUsuarioPorId(int $id) {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    public function getPorCpf(string $cpf) {
+        $sql = "SELECT * FROM usuario WHERE cpf_usuario = :cpf";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':cpf' => $cpf]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function criarUsuarioSimples(string $nome, string $cpf): int|false {
+        try {
+            $sql = "INSERT INTO usuario (nome_usuario, cpf_usuario, ativo_usuario, adm_usuario) 
+                    VALUES (:nome, :cpf, 1, 0)";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':nome' => $nome, ':cpf' => $cpf]);
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            error_log("Erro ao criar usuário simples: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function atualizar(Usuario $usuario) {
     try {
         $sql = "UPDATE usuario SET

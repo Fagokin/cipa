@@ -1,10 +1,7 @@
 <?php
-require_once __DIR__ . "/../repositories/UsuarioDAO.php";
 require_once __DIR__ . "/../repositories/EleicaoDAO.php";
 require_once __DIR__ . "/../repositories/CandidatoDAO.php";
-require_once __DIR__ . "/../models/Usuario.php";
 
-$usuarioDAO = new UsuarioDAO();
 $eleicaoDAO = new EleicaoDAO();
 $candidatoDAO = new CandidatoDAO();
 
@@ -16,81 +13,75 @@ $idEleicao = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $eleicao = $idEleicao > 0 ? $eleicaoDAO->getPorId($idEleicao) : null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
+    $nome = trim($_POST['nome'] ?? '');
     $cpf = preg_replace('/[^0-9]/', '', $_POST['cpf'] ?? '');
-    $matricula = trim($_POST['matricula'] ?? '');
-    $numeroCandidato = (int)($_POST['numero_candidato'] ?? 0);
-    $senha = $_POST['senha'] ?? '';
-    $senhaConfirmar = $_POST['senha_confirmar'] ?? '';
     
-    // Validações
-    if (empty($cpf) || empty($matricula) || $numeroCandidato <= 0) {
-        $erro = "Por favor, preencha todos os campos obrigatórios.";
-    } elseif (empty($senha) || strlen($senha) < 6) {
-        $erro = "A senha deve ter pelo menos 6 caracteres.";
-    } elseif ($senha !== $senhaConfirmar) {
-        $erro = "As senhas não coincidem.";
+    if (empty($nome) || empty($cpf)) {
+        $erro = "Por favor, preencha todos os campos.";
+    } elseif (strlen($cpf) != 11) {
+        $erro = "CPF inválido. Deve conter 11 dígitos.";
     } else {
-        // Verifica se usuário existe
-        $usuario = $usuarioDAO->validarCpfMatricula($cpf, $matricula);
-        
-        if (!$usuario) {
-            $erro = "CPF e/ou matrícula não encontrados ou usuário inativo.";
-        } else {
-            // Verifica se número já existe
-            if ($candidatoDAO->numeroJaExiste($numeroCandidato, $idEleicao)) {
-                $erro = "Este número de candidato já está em uso.";
+        // Upload da foto
+        $fotoCandidato = null;
+        if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = __DIR__ . "/../uploads/candidatos/";
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            
+            $extensao = strtolower(pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION));
+            $extensoesPermitidas = ['jpg', 'jpeg', 'png'];
+            
+            if (in_array($extensao, $extensoesPermitidas)) {
+                $nomeArquivo = uniqid() . '.' . $extensao;
+                $caminhoCompleto = $uploadDir . $nomeArquivo;
+                
+                if (move_uploaded_file($_FILES['foto']['tmp_name'], $caminhoCompleto)) {
+                    $fotoCandidato = 'uploads/candidatos/' . $nomeArquivo;
+                } else {
+                    $erro = "Erro ao fazer upload da imagem.";
+                }
             } else {
-                // Upload da foto
-                $fotoCandidato = null;
-                if (isset($_FILES['foto']) && $_FILES['foto']['error'] === UPLOAD_ERR_OK) {
-                    $uploadDir = __DIR__ . "/../uploads/candidatos/";
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-                    
-                    $extensao = pathinfo($_FILES['foto']['name'], PATHINFO_EXTENSION);
-                    $nomeArquivo = uniqid() . '.' . $extensao;
-                    $caminhoCompleto = $uploadDir . $nomeArquivo;
-                    
-                    if (move_uploaded_file($_FILES['foto']['tmp_name'], $caminhoCompleto)) {
-                        $fotoCandidato = 'uploads/candidatos/' . $nomeArquivo;
+                $erro = "Formato de imagem inválido. Use JPG ou PNG.";
+            }
+        }
+        
+        if (empty($erro)) {
+            // Busca ou cria usuário com esse CPF
+            require_once __DIR__ . "/../repositories/UsuarioDAO.php";
+            $usuarioDAO = new UsuarioDAO();
+            
+            // Verifica se já existe usuário com esse CPF
+            $usuarioExistente = $usuarioDAO->getPorCpf($cpf);
+            
+            if (empty($erro)) {
+                if ($usuarioExistente) {
+                    $idUsuario = $usuarioExistente['id_usuario'];
+                } else {
+                    // Cria novo usuário básico
+                    $idUsuario = $usuarioDAO->criarUsuarioSimples($nome, $cpf);
+                    if (!$idUsuario) {
+                        $erro = "Erro ao criar usuário. Tente novamente.";
                     }
                 }
                 
-                // Cria/atualiza candidato
-                $dadosCandidato = [
-                    'eleicao_fk' => $idEleicao,
-                    'funcionario_fk' => $usuario['id_usuario'],
-                    'numero_candidato' => $numeroCandidato,
-                    'foto_candidato' => $fotoCandidato
-                ];
-                
-                $idCandidato = $candidatoDAO->adicionar($dadosCandidato);
-                
-                if ($idCandidato) {
-                    // Atualiza senha do usuário se necessário
-                    if (!empty($senha)) {
-                        $usuarioObj = new Usuario(
-                            $usuario['nome_usuario'],
-                            $usuario['sobrenome_usuario'],
-                            $senha,
-                            $usuario['data_nascimento_usuario'],
-                            $usuario['data_contratacao_usuario'],
-                            $usuario['ativo_usuario'],
-                            $usuario['adm_usuario'],
-                            $usuario['matricula_usuario'],
-                            $usuario['cpf_usuario'],
-                            $usuario['telefone_usuario'] ?? '',
-                            $usuario['email_usuario'] ?? ''
-                        );
-                        $usuarioObj->setIdUsuario($usuario['id_usuario']);
-                        $usuarioDAO->atualizar($usuarioObj);
-                    }
+                if (empty($erro)) {
+                    // Adiciona como candidato
+                    $dadosCandidato = [
+                        'eleicao_fk' => $idEleicao,
+                        'funcionario_fk' => $idUsuario,
+                        'numero_candidato' => 0, // Será gerado automaticamente ou definido depois
+                        'foto_candidato' => $fotoCandidato
+                    ];
                     
-                    $sucesso = true;
-                    $mensagem = "Candidatura realizada com sucesso! Você pode fazer login no sistema.";
-                } else {
-                    $erro = "Erro ao registrar candidatura. Tente novamente.";
+                    $idCandidato = $candidatoDAO->adicionar($dadosCandidato);
+                    
+                    if ($idCandidato) {
+                        $sucesso = true;
+                        $mensagem = "Candidatura realizada com sucesso!";
+                    } else {
+                        $erro = "Erro ao registrar candidatura. Tente novamente.";
+                    }
                 }
             }
         }
@@ -105,97 +96,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Candidatar-se - Eleição CIPA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="fas fa-user-tie"></i> Candidatar-se à Eleição CIPA</h3>
+                    <h4 class="mb-0">Candidatar-se à Eleição</h4>
                 </div>
                 <div class="card-body">
                     <?php if ($eleicao): ?>
                         <h5 class="mb-3"><?= htmlspecialchars($eleicao['titulo_eleicao']) ?></h5>
-                        <p class="text-muted"><?= htmlspecialchars($eleicao['descricao_eleicao'] ?? '') ?></p>
                     <?php endif; ?>
 
                     <?php if ($sucesso): ?>
                         <div class="alert alert-success">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                            <h4 class="mt-2">Candidatura realizada com sucesso!</h4>
-                            <p>Você pode fazer login no sistema usando seu CPF e a senha que acabou de definir.</p>
-                            <a href="Login.php" class="btn btn-primary">
-                                <i class="fas fa-sign-in-alt"></i> Fazer Login
-                            </a>
+                            <strong>Sucesso!</strong> <?= $mensagem ?>
+                            <br><br>
+                            <a href="Cronograma.php?id=<?= $idEleicao ?>" class="btn btn-primary">Voltar</a>
                         </div>
                     <?php else: ?>
                         <?php if ($erro): ?>
-                            <div class="alert alert-danger alert-dismissible fade show">
-                                <i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($erro) ?>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            <div class="alert alert-danger">
+                                <?= htmlspecialchars($erro) ?>
                             </div>
                         <?php endif; ?>
 
                         <form method="POST" enctype="multipart/form-data">
                             <div class="mb-3">
-                                <label for="cpf" class="form-label fw-bold">CPF <span class="text-danger">*</span></label>
-                                <input type="text" name="cpf" id="cpf" class="form-control form-control-lg" 
-                                       placeholder="000.000.000-00" required autofocus>
+                                <label for="nome" class="form-label">Nome Completo <span class="text-danger">*</span></label>
+                                <input type="text" name="nome" id="nome" class="form-control" required>
                             </div>
 
                             <div class="mb-3">
-                                <label for="matricula" class="form-label fw-bold">Matrícula <span class="text-danger">*</span></label>
-                                <input type="text" name="matricula" id="matricula" class="form-control form-control-lg" 
-                                       placeholder="Digite sua matrícula" required>
+                                <label for="cpf" class="form-label">CPF <span class="text-danger">*</span></label>
+                                <input type="text" name="cpf" id="cpf" class="form-control" 
+                                       placeholder="000.000.000-00" required>
                             </div>
 
                             <div class="mb-3">
-                                <label for="numero_candidato" class="form-label fw-bold">Número de Candidato <span class="text-danger">*</span></label>
-                                <input type="number" name="numero_candidato" id="numero_candidato" 
-                                       class="form-control form-control-lg" 
-                                       placeholder="Digite o número que deseja usar" 
-                                       min="1" required>
-                                <small class="form-text text-muted">Escolha um número único para sua candidatura.</small>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="foto" class="form-label fw-bold">Foto (opcional)</label>
+                                <label for="foto" class="form-label">Foto</label>
                                 <input type="file" name="foto" id="foto" class="form-control" 
-                                       accept="image/*">
-                                <small class="form-text text-muted">Formatos aceitos: JPG, PNG. Tamanho máximo: 2MB.</small>
+                                       accept="image/jpeg,image/png">
+                                <small class="form-text text-muted">Formatos: JPG, PNG</small>
                             </div>
 
-                            <div class="mb-3">
-                                <label for="senha" class="form-label fw-bold">Definir Senha <span class="text-danger">*</span></label>
-                                <input type="password" name="senha" id="senha" class="form-control form-control-lg" 
-                                       placeholder="Mínimo 6 caracteres" required>
-                                <small class="form-text text-muted">Esta senha será usada para fazer login no sistema.</small>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="senha_confirmar" class="form-label fw-bold">Confirmar Senha <span class="text-danger">*</span></label>
-                                <input type="password" name="senha_confirmar" id="senha_confirmar" 
-                                       class="form-control form-control-lg" 
-                                       placeholder="Digite a senha novamente" required>
-                            </div>
-
-                            <div class="d-grid">
+                            <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-check-circle"></i> Confirmar Candidatura
+                                    Confirmar Candidatura
                                 </button>
+                                <a href="Cronograma.php?id=<?= $idEleicao ?>" class="btn btn-secondary">
+                                    Voltar
+                                </a>
                             </div>
                         </form>
                     <?php endif; ?>
                 </div>
-            </div>
-
-            <div class="text-center mt-3">
-                <a href="Cronograma.php<?= $idEleicao ? '?id=' . $idEleicao : '' ?>" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Voltar
-                </a>
             </div>
         </div>
     </div>
@@ -217,4 +175,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $eleicao) {
 
 </body>
 </html>
-

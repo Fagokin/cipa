@@ -45,18 +45,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3 class="mb-0"><i class="fas fa-vote-yea"></i> Eleição de CIPA DAX-CODE</h3>
         </div>
         <div class="card-body">
-            </p>
-
             <?= $mensagem ?>
 
             <form method="POST">
-                <div class="mb-4">
-                    <label for="titulo_eleicao" class="form-label fw-bold">Nome</label>
-                    <input type="text" name="titulo_eleicao" id="titulo_eleicao" class="form-control form-control-lg" 
+                <div class="mb-3">
+                    <label for="titulo_eleicao" class="form-label">Nome</label>
+                    <input type="text" name="titulo_eleicao" id="titulo_eleicao" class="form-control" 
                            placeholder="Ex: CIPA 2025/2026" required>
                 </div>
 
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-md-6">
                         <label for="data_inicio_eleicao" class="form-label">Data de início da eleição</label>
                         <input type="date" name="data_inicio_eleicao" id="data_inicio_eleicao" class="form-control" required>
@@ -67,12 +65,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label for="descricao_eleicao" class="form-label">Descrição (opcional)</label>
                     <textarea name="descricao_eleicao" id="descricao_eleicao" class="form-control" rows="3"></textarea>
                 </div>
 
-                <div class="form-check mb-4">
+                <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" name="permite_voto_branco" id="permite_voto_branco">
                     <label class="form-check-label" for="permite_voto_branco">
                         Permitir voto em branco
@@ -80,17 +78,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
 
                 <div class="d-flex justify-content-between">
-                    <a href="Eleicoes.php" class="btn btn-secondary btn-lg">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </a>
-                    <div>
-                        <button type="button" class="btn btn-outline-primary btn-lg me-2" disabled>
-                            Avançar <i class="fas fa-arrow-right"></i>
-                        </button>
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i> Salvar
-                        </button>
-                    </div>
+                    <a href="Eleicoes.php" class="btn btn-secondary">Voltar</a>
+                    <button type="submit" class="btn btn-success">Salvar</button>
                 </div>
             </form>
         </div>

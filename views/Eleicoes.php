@@ -19,7 +19,7 @@ $eleicoes = $eleicaoDAO->listarTodas(); // método que vamos criar agora
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h2"><i class="fas fa-vote-yea text-primary"></i> Eleições CIPA</h1>
-        <a href="CriarEleicao.php" class="btn btn-success btn-lg">
+        <a href="CriarEleicao1.php" class="btn btn-success btn-lg">
             <i class="fas fa-plus"></i> Nova Eleição
         </a>
     </div>

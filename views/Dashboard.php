@@ -54,9 +54,6 @@ $eleicoes = $eleicaoDAO->listarTodas();
                             <a href="Eleicoes.php" class="list-group-item list-group-item-action">
                                 <i class="fas fa-vote-yea"></i> Gerenciar Eleições
                             </a>
-                            <a href="Documentos.php" class="list-group-item list-group-item-action">
-                                <i class="fas fa-file-alt"></i> Gerenciar Documentos
-                            </a>
                         <?php else: ?>
                             <a href="Dashboard.php" class="list-group-item list-group-item-action active">
                                 <i class="fas fa-home"></i> Dashboard
@@ -92,21 +89,12 @@ $eleicoes = $eleicaoDAO->listarTodas();
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <div class="card bg-success text-white">
                                         <div class="card-body text-center">
                                             <i class="fas fa-vote-yea fa-3x mb-2"></i>
                                             <h5>Eleições</h5>
                                             <a href="Eleicoes.php" class="btn btn-light btn-sm">Gerenciar</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="card bg-info text-white">
-                                        <div class="card-body text-center">
-                                            <i class="fas fa-file-alt fa-3x mb-2"></i>
-                                            <h5>Documentos</h5>
-                                            <a href="Documentos.php" class="btn btn-light btn-sm">Gerenciar</a>
                                         </div>
                                     </div>
                                 </div>
