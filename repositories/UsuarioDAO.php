@@ -10,19 +10,15 @@
         }
 
     public function criarUsuarioDAO(Usuario $usuario) {
-    $codigoVoto = 'CV-' . date('Y') . '-' . substr(md5(uniqid()), 0, 6);
-    
-    $usuario->setCodigoVotoUsuario($codigoVoto);
-    
     $sql = "INSERT INTO usuario (
                 nome_usuario, sobrenome_usuario, email_usuario, senha_usuario,
                 data_nascimento_usuario, data_contratacao_usuario,
                 matricula_usuario, cpf_usuario, telefone_usuario,
-                ativo_usuario, adm_usuario, codigo_voto_usuario
+                ativo_usuario, adm_usuario
              ) VALUES (
                 :nome, :sobrenome, :email, :senha,
                 :nasc, :contrat, :matric, :cpf, :tel,
-                :ativo, :adm, :cod_voto
+                :ativo, :adm
              )";
 
     $stmt = $this->pdo->prepare($sql);
@@ -31,7 +27,7 @@
         ':nome'     => $usuario->getNomeUsuario(),
         ':sobrenome'=> $usuario->getSobrenomeUsuario(),
         ':email'    => $usuario->getEmailUsuario() ?: null,
-        ':senha'    => password_hash($usuario->getSenhaUsuario(), PASSWORD_BCRYPT), 
+        ':senha'    => $usuario->getSenhaUsuario(), 
         ':nasc'     => $usuario->getDatadeNascimentoUuario(),
         ':contrat'  => $usuario->getDataContratacaoUsuario(),
         ':matric'   => $usuario->getMatriculaUsuario(),
@@ -39,13 +35,16 @@
         ':tel'      => $usuario->getTelefoneUsuario() ?: null,
         ':ativo'    => $usuario->getAtivoUsuario() ? 1 : 0,
         ':adm'      => $usuario->getAdmUsuario() ? 1 : 0,
-        ':cod_voto' => $codigoVoto,
     ]);
-    }
+
+    return true;
+
+    } 
  public function listarTodos() {
     $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, email_usuario,
                    data_nascimento_usuario, data_contratacao_usuario,
-                   matricula_usuario, telefone_usuario, ativo_usuario
+                   matricula_usuario, telefone_usuario, ativo_usuario,
+                   codigo_voto_usuario
             FROM usuario ORDER BY nome_usuario";
     $stmt = $this->pdo->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -56,6 +55,26 @@ public function getUsuarioPorId(int $id) {
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':id' => $id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function getPorCpf(string $cpf) {
+        $sql = "SELECT * FROM usuario WHERE cpf_usuario = :cpf";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':cpf' => $cpf]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function criarUsuarioSimples(string $nome, string $cpf): int|false {
+        try {
+            $sql = "INSERT INTO usuario (nome_usuario, cpf_usuario, ativo_usuario, adm_usuario) 
+                    VALUES (:nome, :cpf, 1, 0)";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':nome' => $nome, ':cpf' => $cpf]);
+            return $this->pdo->lastInsertId();
+        } catch (PDOException $e) {
+            error_log("Erro ao criar usuário simples: " . $e->getMessage());
+            return false;
+        }
     }
 
     public function atualizar(Usuario $usuario) {
@@ -105,11 +124,155 @@ public function getUsuarioPorId(int $id) {
 
 
 
-public function excluir($id) {
-    $sql = "DELETE FROM usuario WHERE id_usuario = :id";
-    $stmt = $this->pdo->prepare($sql);
-    $stmt->execute([':id' => $id]);
+public function excluir($id): bool {
+    try {
+        $sql = "DELETE FROM usuario WHERE id_usuario = :id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return true;
+    } catch (PDOException $e) {
+        error_log("Erro ao excluir usuário: " . $e->getMessage());
+        return false;
+    }
 }
+
+    /**
+     * Gera um código único de votação para o usuário
+     * @param int $idUsuario ID do usuário
+     * @return string|false Retorna o código gerado ou false em caso de erro
+     */
+    public function gerarCodigoVoto(int $idUsuario): string|false {
+        try {
+            // Gera um código único de 8 caracteres alfanuméricos
+            $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+            
+            // Verifica se o código já existe (muito improvável, mas por segurança)
+            $sqlVerifica = "SELECT id_usuario FROM usuario WHERE codigo_voto_usuario = :codigo";
+            $stmtVerifica = $this->pdo->prepare($sqlVerifica);
+            $stmtVerifica->execute([':codigo' => $codigo]);
+            
+            // Se o código já existir, gera outro
+            while ($stmtVerifica->fetch()) {
+                $codigo = strtoupper(substr(md5(uniqid(rand(), true)), 0, 8));
+                $stmtVerifica->execute([':codigo' => $codigo]);
+            }
+            
+            // Atualiza o código no banco de dados
+            $sql = "UPDATE usuario SET codigo_voto_usuario = :codigo WHERE id_usuario = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':codigo' => $codigo,
+                ':id' => $idUsuario
+            ]);
+            
+            return $codigo;
+        } catch (PDOException $e) {
+            error_log("Erro ao gerar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Valida se um código de votação existe e está ativo
+     * @param string $codigo Código de votação
+     * @return array|false Retorna os dados do usuário ou false se inválido
+     */
+    public function validarCodigoVoto(string $codigo): array|false {
+        try {
+            $sql = "SELECT id_usuario, nome_usuario, sobrenome_usuario, matricula_usuario, 
+                           ativo_usuario, codigo_voto_usuario, cpf_usuario
+                    FROM usuario 
+                    WHERE codigo_voto_usuario = :codigo AND ativo_usuario = 1";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':codigo' => $codigo]);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $resultado ? $resultado : false;
+        } catch (PDOException $e) {
+            error_log("Erro ao validar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function marcarCodigoComoUsado(int $idUsuario): bool {
+        try {
+            $sql = "UPDATE usuario SET codigo_voto_usuario = NULL WHERE id_usuario = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id' => $idUsuario]);
+            return true;
+        } catch (PDOException $e) {
+            error_log("Erro ao marcar código como usado: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Busca o código de votação de um usuário
+     * @param int $idUsuario ID do usuário
+     * @return string|false Retorna o código ou false se não existir
+     */
+    public function getCodigoVoto(int $idUsuario): string|false {
+        try {
+            $sql = "SELECT codigo_voto_usuario FROM usuario WHERE id_usuario = :id";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':id' => $idUsuario]);
+            $resultado = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            return $resultado && !empty($resultado['codigo_voto_usuario']) 
+                ? $resultado['codigo_voto_usuario'] 
+                : false;
+        } catch (PDOException $e) {
+            error_log("Erro ao buscar código de votação: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Realiza o login do usuário verificando CPF e senha
+     * @param string $cpf CPF do usuário (apenas números)
+     * @param string $senha Senha em texto plano
+     * @return Usuario|false Retorna o objeto Usuario se login for bem-sucedido, ou false caso contrário
+     */
+    public function login(string $cpf, string $senha): Usuario|false {
+        try {
+            $sql = "SELECT * FROM usuario WHERE cpf_usuario = :cpf AND ativo_usuario = 1";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':cpf' => $cpf]);
+            $dados = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$dados) {
+                return false;
+            }
+            
+            // Verifica se a senha está correta
+            if (!password_verify($senha, $dados['senha_usuario'])) {
+                return false;
+            }
+            
+            // Cria e retorna o objeto Usuario
+            $usuario = new Usuario(
+                $dados['nome_usuario'],
+                $dados['sobrenome_usuario'],
+                '', // senha não é retornada por segurança
+                $dados['data_nascimento_usuario'],
+                $dados['data_contratacao_usuario'],
+                (bool)$dados['ativo_usuario'],
+                (bool)$dados['adm_usuario'],
+                $dados['matricula_usuario'],
+                $dados['cpf_usuario'],
+                $dados['telefone_usuario'] ?? '',
+                $dados['email_usuario'] ?? '',
+                $dados['codigo_voto_usuario'] ?? '',
+                $dados['id_usuario'],
+                $dados['ultimo_acesso_usuario'] ?? ''
+            );
+            
+            return $usuario;
+        } catch (PDOException $e) {
+            error_log("Erro ao realizar login: " . $e->getMessage());
+            return false;
+        }
+    }
         
     }
 ?>
